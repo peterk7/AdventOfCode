@@ -1,0 +1,14 @@
+{
+  "editor.suggest.showStatusBar": true,
+  "workbench.statusBar.visible": true,
+  "zenMode.hideStatusBar": true,
+  "workbench.view.showQuietly": {
+    "workbench.panel.output": false
+  },
+  "cursor.windowSwitcher.sidebarHoverCollapsed": false,
+  "editor.tabFocusMode": false,
+  "workbench.navigationControl.enabled": true,
+  "window.autoDetectColorScheme": false,
+  "window.closeWhenEmpty": false,
+  "window.commandCenter": true
+}
