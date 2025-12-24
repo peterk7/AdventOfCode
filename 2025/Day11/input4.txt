@@ -1,0 +1,8 @@
+svr: aaa bbb ccc
+aaa: eee
+bbb: eee
+ccc: ddd
+ddd: eee
+eee: fft
+fft: dac
+dac: out

@@ -11,9 +11,11 @@ import pprint
 from collections import defaultdict, deque
 from tqdm import tqdm, trange
 
+from pyvis.network import Network
+
 # import traceback
 # import logging
-# import json
+import json
 # import functools
 
 DAY = "11"
@@ -21,8 +23,10 @@ DEV = True  # Enable development logging
 
 # Define test cases: (input_num, expected_part1, expected_part2)
 test_cases = [
-    (1, 5, None),
-    # (2, None, None),
+    (1, 5, 0),
+    (3, 0, 2),
+    (2, 472, 526811953334940),
+    (4, 0, 3)
 ]
 
 # Set recursion limit as needed
@@ -77,23 +81,152 @@ class System:
         return (self.part1(), self.part2())
 
     def part1(self):
-        return
+        return self.challenge.processPart1()
 
     def part2(self):
-        return
+        return self.challenge.processPart2()
 
 
 class Challenge:
 
     def __init__(self):
+        self.graph = Graph()
         return
 
     def __str__(self):
         return f""
 
     def processLine(self, line):
-        log("\nProcessing line: ", line)
+        split = line.split(" ")
+        originNode = split[0][:-1]
+        destinationNodes = split[1:]
+        # log(f"OriginNode: {originNode}")
+        # log(f"destinationNodes: {destinationNodes}")
+        for destinationNode in destinationNodes:
+            self.graph.addEdge(originNode, destinationNode)
+
         return
+
+    def processPart1(self):
+        return len(self.findPaths("you", "out"))
+
+    def findPaths(self, startNode, endNode, excludeNodes=[]):
+        queue = deque([(startNode, 0, [startNode])])
+
+        paths = []
+        while queue:
+            currentNode, currentDistance, currentPath = queue.popleft()
+            # log(f"CurrentNode: {currentNode}, CurrentDistance: {currentDistance}, CurrentPath: {currentPath}")
+            # if currentNode in visited:
+            #     continue
+            if currentNode in excludeNodes:
+                continue
+            if currentNode == endNode:
+                paths.append(currentPath)
+                continue
+            # visited.add(currentNode)
+            for neighbor in self.graph.edges[currentNode]:
+                queue.append((neighbor, currentDistance + 1, currentPath + [neighbor]))
+
+        return paths
+
+    def processPart2(self):
+        # self.graph.show()
+        # return 0
+        # log(f"Graph: {self.graph}")
+        
+        pathsSvrToFFT = self.findPathsDFS("svr", "fft", ["dac"], {})
+        # log(f"\nPathsSvrToFFT: {pprint.pformat(pathsSvrToFFT)}")
+
+        pathsFFTToDAC = self.findPathsDFS("fft", "dac", ["svr"], {})
+        # log(f"\nPathsFFTToDAC: {pprint.pformat(pathsFFTToDAC)}")
+
+        pathsDACToOut = self.findPathsDFS("dac", "out", ["svr", "fft"], {})
+        # log(f"\nPathsDACToOut: {pprint.pformat(pathsDACToOut)}")
+
+        return pathsSvrToFFT * pathsFFTToDAC * pathsDACToOut
+
+        # svr -> aaa -      -> eee -> fft
+        #     -> bbb ^      ^
+        #     -> ccc -> ddd |
+        # DAC -> FFT is empty, therefore this flow is 0 by default.
+        # pathsSvrToDAC = self.findPaths("svr", "dac", ["fft"])
+        # log(f"\nPathsSvrToDAC: {pprint.pformat(pathsSvrToDAC)}")
+
+        # pathsDACToFFT = self.findPaths("dac", "fft", ["svr"])
+        # log(f"\nPathsDACToFFT: {pprint.pformat(pathsDACToFFT)}")
+
+        # pathsFFTToOut = self.findPaths("fft", "out", ["svr", "dac"])
+        # log(f"\nPathsFFTToOut: {pprint.pformat(pathsFFTToOut)}")
+
+        
+        return 0
+
+    def findPathsDFS(self, startNode, endNode, excludeNodes=[], visited={}):
+        
+        if startNode == endNode:
+            # log(f"Found end node: {startNode}")
+            return 1
+        if startNode in excludeNodes:
+            # log(f"Excluded node: {startNode}")
+            return 0
+        
+        if startNode in visited:
+            # log(f"Visited node: {startNode}")
+            return visited[startNode]
+        paths = 0
+        for neighbor in self.graph.edges[startNode]:
+            paths += self.findPathsDFS(neighbor, endNode, excludeNodes, visited)
+        visited[startNode] = paths
+        return paths
+
+
+class Graph:
+
+    def __init__(self):
+        self.nodes = set()
+        self.edges = defaultdict(list)
+        # self.net = Network(notebook=True, bgcolor="#222222", font_color="white", height="750px", width="100%")
+        self.net = Network(directed=True, select_menu=True)
+        # Enable hierarchical layout
+        options = {
+            "layout": {
+                "hierarchical": {
+                    "enabled": True,
+                    "levelSeparation": 150,
+                    "nodeSpacing": 100,
+                    "treeSpacing": 200,
+                    "blockShifting": True,
+                    "edgeMinimization": True,
+                    "parentCentralization": True,
+                    "direction": "UD",
+                    "sortMethod": "directed"
+                }
+            }
+        }
+
+        self.net.set_options(json.dumps(options))
+
+
+    def __str__(self):
+        return f"Graph(nodes: {self.nodes}, edges: {pprint.pformat(self.edges)})"
+        
+
+    def show(self):
+        # self.net.show_buttons(filter_=['physics'])
+        self.net.show("network.html", notebook=False)
+        return
+
+    def addEdge(self, originNode, destinationNode):
+
+        self.nodes.add(originNode)
+        self.nodes.add(destinationNode)
+        self.edges[originNode].append(destinationNode)
+
+        self.net.add_node(originNode, label=originNode)
+        self.net.add_node(destinationNode, label=destinationNode)
+        self.net.add_edge(originNode, destinationNode)
+
 
 
 def validatePart(part_name, result, expected):
